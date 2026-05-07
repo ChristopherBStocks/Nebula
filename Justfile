@@ -1,3 +1,7 @@
+# Run all-systems check
+check:
+    nix flake check --all-systems
+
 # Run linter
 lint:
     deadnix

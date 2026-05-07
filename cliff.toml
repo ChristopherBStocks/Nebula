@@ -1,0 +1,68 @@
+[changelog]
+header = """
+# Changelog
+
+All notable changes to this project will be documented in this file.
+"""
+body = """
+{% if version %}\
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+    ## [unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | striptags | trim | upper_first }}
+    {% for commit in commits %}
+        - {% if commit.scope %}*({{ commit.scope }})* {% endif %}\
+            {% if commit.breaking %}[**breaking**] {% endif %}\
+            {{ commit.message | upper_first }}\
+    {% endfor %}
+{% endfor %}
+"""
+trim = true
+render_always = true
+postprocessors = [
+  { pattern = '<REPO>', replace = "https://github.com/HydroGroupLtd/Pantheon" },
+]
+output = "CHANGELOG.md"
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+require_conventional = false
+split_commits = false
+commit_preprocessors = [
+  { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](<REPO>/issues/${2}))" },
+]
+protect_breaking_commits = true
+commit_parsers = [
+  { scope = "security", group = "<!-- 0 -->🛡️ Security" },
+  { message = "^feat", group = "<!-- 1 -->🚀 Features" },
+  { message = "^fix", group = "<!-- 2 -->🐛 Bug Fixes" },
+  { message = "^refactor", group = "<!-- 3 -->🚜 Refactor" },
+  { message = "^docs", group = "<!-- 4 -->📚 Documentation" },
+  { message = "^perf", group = "<!-- 5 -->⚡ Performance" },
+  { message = "^style", group = "<!-- 6 -->🎨 Styling" },
+  { message = "^test", group = "<!-- 7 -->🧪 Testing" },
+  { message = "^ci", group = "<!-- 8 -->👷 CI" },
+  { message = "^chore\\(release", skip = true },
+  { message = "^chore\\(deps.*\\)", skip = true },
+  { message = "^chore\\(pr\\)", skip = true },
+  { message = "^chore\\(pull\\)", skip = true },
+  { message = "^(wip|WIP)", skip = true },
+  { message = "^fixup!", skip = true },
+  { message = "^squash!", skip = true },
+  { message = "^Merge", skip = true },
+  { message = "^chore", group = "<!-- 9 -->⚙️ Miscellaneous Tasks" },
+  { message = "^revert", group = "<!-- 10 -->◀️ Revert" },
+  { message = ".*", group = "<!-- 11 -->💼 Other" },
+]
+filter_commits = false
+link_parsers = [
+  { pattern = "#(\\d+)", href = "https://github.com/HydroGroupLtd/Pantheon/issues/$1" },
+]
+use_branch_tags = true
+topo_order = true
+topo_order_commits = true
+sort_commits = "oldest"
+recurse_submodules = false

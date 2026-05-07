@@ -1,0 +1,8 @@
+# Flake
+.direnv
+
+# IDE(s)
+.idea
+
+# OS
+.DS_Store

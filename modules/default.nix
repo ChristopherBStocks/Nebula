@@ -1,3 +1,6 @@
 _: {
-  imports = [./localisation];
+  imports = [
+    ./loader
+    ./localisation
+  ];
 }

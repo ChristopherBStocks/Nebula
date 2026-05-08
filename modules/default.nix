@@ -3,6 +3,7 @@ _: {
     ./kernel
     ./loader
     ./localisation
+    ./networking
     ./users
   ];
 }

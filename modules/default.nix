@@ -4,6 +4,7 @@ _: {
     ./loader
     ./localisation
     ./networking
+    ./services
     ./users
   ];
 }

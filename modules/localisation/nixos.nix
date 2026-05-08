@@ -27,10 +27,28 @@ in {
       description = "X keyboard layout (e.g. gb, us).";
     };
 
+    xkbOptions = mkOption {
+      type = types.str;
+      default = "";
+      description = "X keyboard options (e.g. eurosign:e,caps:escape). Empty string disables.";
+    };
+
     consoleKeyMap = mkOption {
       type = types.str;
       default = "uk";
-      description = "Console keymap (e.g. uk, us).";
+      description = "Console keymap. Ignored when useXkbConfig is true.";
+    };
+
+    consoleFont = mkOption {
+      type = types.str;
+      default = "";
+      description = "Console font (e.g. Lat2-Terminus16). Empty string uses the system default.";
+    };
+
+    useXkbConfig = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Derive the console keymap from the XKB layout instead of consoleKeyMap.";
     };
   };
 
@@ -50,7 +68,14 @@ in {
         LC_TIME = cfg.defaultLocale;
       };
     };
-    services.xserver.xkb.layout = mkDefault cfg.xkbLayout;
-    console.keyMap = mkDefault cfg.consoleKeyMap;
+    services.xserver.xkb = {
+      layout = mkDefault cfg.xkbLayout;
+      options = mkIf (cfg.xkbOptions != "") (mkDefault cfg.xkbOptions);
+    };
+    console = {
+      keyMap = mkIf (!cfg.useXkbConfig) (mkDefault cfg.consoleKeyMap);
+      useXkbConfig = mkDefault cfg.useXkbConfig;
+      font = mkIf (cfg.consoleFont != "") (mkDefault cfg.consoleFont);
+    };
   };
 }

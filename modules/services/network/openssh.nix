@@ -128,7 +128,6 @@ in {
       default = false;
       description = "Allow host-based authentication.";
     };
-
   };
 
   config = mkIf cfg.enable {
@@ -146,7 +145,11 @@ in {
           ClientAliveInterval = mkDefault cfg.clientAliveInterval;
           MaxSessions = mkDefault cfg.maxSessions;
           MaxStartups = mkDefault cfg.maxStartups;
-          AllowTcpForwarding = mkDefault (if cfg.allowTcpForwarding then "yes" else "no");
+          AllowTcpForwarding = mkDefault (
+            if cfg.allowTcpForwarding
+            then "yes"
+            else "no"
+          );
           AllowAgentForwarding = mkDefault cfg.allowAgentForwarding;
           X11Forwarding = mkDefault cfg.x11Forwarding;
           PrintLastLog = mkDefault cfg.printLastLog;

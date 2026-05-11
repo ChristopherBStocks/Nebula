@@ -5,8 +5,11 @@
   type = types.submodule {
     options = {
       destination = mkOption {
-        type = address.type;
-        default = {address = "0.0.0.0"; prefixLength = 0;};
+        inherit (address) type;
+        default = {
+          address = "0.0.0.0";
+          prefixLength = 0;
+        };
         description = "Route destination.";
       };
       gateway = mkOption {
@@ -23,7 +26,10 @@
 
   mk = r: {
     routeConfig =
-      {Destination = "${r.destination.address}/${toString r.destination.prefixLength}"; Gateway = r.gateway;}
+      {
+        Destination = "${r.destination.address}/${toString r.destination.prefixLength}";
+        Gateway = r.gateway;
+      }
       // lib.optionalAttrs (r.table != null) {Table = r.table;};
   };
 in {inherit type mk;}

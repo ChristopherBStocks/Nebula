@@ -1,4 +1,8 @@
-{config, lib, ...}: let
+{
+  config,
+  lib,
+  ...
+}: let
   inherit (lib) mkDefault mkEnableOption mkIf mkOption types;
   cfg = config.nebula.services.crowdsec;
   acquisition = import ./crowdsec/acquisition.nix {inherit lib;};

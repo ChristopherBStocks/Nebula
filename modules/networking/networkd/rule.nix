@@ -5,7 +5,7 @@
   type = types.submodule {
     options = {
       from = mkOption {
-        type = address.type;
+        inherit (address) type;
         description = "Source address/prefix to match.";
       };
       table = mkOption {

@@ -1,3 +1,6 @@
 _: {
-  imports = [./network];
+  imports = [
+    ./network
+    ./security
+  ];
 }

@@ -91,13 +91,19 @@ in {
     cscli = "${config.services.crowdsec.package}/bin/cscli -c ${cscliConfigFile}";
     capiCredentialsPath = "/var/lib/crowdsec/online_api_credentials.yaml";
   in {
-    systemd.services.crowdsec-bootstrap = bootstrap {inherit cfg cscli;};
-    systemd.services.crowdsec-capi-register =
-      mkIf cfg.capi.enable
-      (capiRegister {inherit cfg cscli capiCredentialsPath;});
-    systemd.services.crowdsec-console-enroll =
-      mkIf (cfg.capi.enable && cfg.capi.consoleEnrollKeyFile != null)
-      (consoleEnroll {inherit cfg cscli pkgs;});
+    systemd.services = {
+      crowdsec.serviceConfig = {
+        SupplementaryGroups = ["systemd-journal"];
+        PrivateUsers = lib.mkForce false;
+      };
+      crowdsec-bootstrap = bootstrap {inherit cfg cscli;};
+      crowdsec-capi-register =
+        mkIf cfg.capi.enable
+        (capiRegister {inherit cfg cscli capiCredentialsPath;});
+      crowdsec-console-enroll =
+        mkIf (cfg.capi.enable && cfg.capi.consoleEnrollKeyFile != null)
+        (consoleEnroll {inherit cfg cscli pkgs;});
+    };
 
     services.crowdsec =
       {

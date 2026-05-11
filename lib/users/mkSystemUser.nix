@@ -6,22 +6,15 @@
   createHome ? home != null,
   shell ? null,
   extraGroups ? [],
-}: {
-  lib,
-  pkgs,
-  ...
-}: {
+}: {lib, ...}: {
   users = {
     users.${username} =
       {
         isSystemUser = true;
         group = username;
         inherit description extraGroups createHome;
-        shell =
-          if shell != null
-          then shell
-          else pkgs.shadow;
       }
+      // lib.optionalAttrs (shell != null) {inherit shell;}
       // lib.optionalAttrs (uid != null) {inherit uid;}
       // lib.optionalAttrs (home != null) {inherit home;};
 

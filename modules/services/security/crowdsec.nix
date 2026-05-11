@@ -11,6 +11,8 @@
   capiRegister = import ./crowdsec/capi-register.nix;
   consoleEnroll = import ./crowdsec/console-enroll.nix;
 in {
+  imports = [./crowdsec/bouncers/firewall.nix];
+
   options.nebula.services.crowdsec = {
     enable = mkEnableOption "nebula CrowdSec";
 

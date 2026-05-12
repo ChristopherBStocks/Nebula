@@ -23,7 +23,7 @@
   masqueradeRules =
     lib.concatMapStringsSep "\n      "
     (iface: "oif \"${iface}\" masquerade")
-    (lib.unique (map (fwd: fwd.interface) cfg.forwards));
+    (lib.unique (map (fwd: if fwd.masqInterface != null then fwd.masqInterface else fwd.interface) cfg.forwards));
 in {
   options.nebula.networking.nftables.nat = {
     enable = mkEnableOption "nebula NAT port forwarding";
@@ -70,6 +70,12 @@ in {
             type = types.nullOr (types.either types.port types.str);
             default = null;
             description = "Destination port or range. Defaults to source port.";
+          };
+
+          masqInterface = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            description = "Interface to masquerade on. Defaults to the input interface if null.";
           };
         };
       });

@@ -37,6 +37,12 @@
         description = "Interface to match. Matches all interfaces if null.";
       };
 
+      outInterface = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "Outbound interface to match. Matches all interfaces if null.";
+      };
+
       action = mkOption {
         type = types.enum ["accept" "drop" "reject"];
         default = "accept";
@@ -48,9 +54,10 @@
   mkRules = rule: let
     mkProto = proto: let
       ifaceMatch = lib.optionalString (rule.interface != null) "iifname \"${rule.interface}\" ";
+      oifMatch = lib.optionalString (rule.outInterface != null) "oifname \"${rule.outInterface}\" ";
       srcMatch = lib.optionalString (rule.source != null) "ip saddr ${rule.source} ";
       dstMatch = lib.optionalString (rule.dest != null) "ip daddr ${rule.dest} ";
-    in "${ifaceMatch}${srcMatch}${dstMatch}${proto} dport ${toString rule.port} ${rule.action}";
+    in "${ifaceMatch}${oifMatch}${srcMatch}${dstMatch}${proto} dport ${toString rule.port} ${rule.action}";
   in
     if rule.proto == "tcp_udp"
     then "${mkProto "tcp"}\n      ${mkProto "udp"}"

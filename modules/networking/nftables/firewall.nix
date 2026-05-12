@@ -91,6 +91,12 @@ in {
       description = "Input firewall rules.";
     };
 
+    requireForwardRules = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Always create the forward chain with policy drop. When disabled, the forward chain is only created when forwardRules is non-empty.";
+    };
+
     forwardRules = mkOption {
       type = types.listOf ruleSubmodule;
       default = [];
@@ -126,7 +132,7 @@ in {
           ${lib.concatMapStringsSep "\n      " mkRules cfg.rules}
         }
 
-        ${lib.optionalString (cfg.forwardRules != []) ''
+        ${lib.optionalString (cfg.requireForwardRules || cfg.forwardRules != []) ''
           chain forward {
             type filter hook forward priority filter; policy drop;
 

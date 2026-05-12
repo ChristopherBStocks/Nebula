@@ -9,8 +9,10 @@
   mkRule = fwd: proto: let
     isRange = builtins.isString fwd.port;
     portSuffix =
-      if fwd.destPort != null then ":${toString fwd.destPort}"
-      else if !isRange then ":${toString fwd.port}"
+      if fwd.destPort != null
+      then ":${toString fwd.destPort}"
+      else if !isRange
+      then ":${toString fwd.port}"
       else "";
     addrMatch = lib.optionalString (fwd.address != null) "ip daddr ${fwd.address} ";
   in "iif \"${fwd.interface}\" ${addrMatch}${proto} dport ${toString fwd.port} dnat to ${fwd.dest}${portSuffix}";
@@ -23,7 +25,11 @@
   masqueradeRules =
     lib.concatMapStringsSep "\n      "
     (iface: "oif \"${iface}\" masquerade")
-    (lib.unique (map (fwd: if fwd.masqInterface != null then fwd.masqInterface else fwd.interface) cfg.forwards));
+    (lib.unique (map (fwd:
+      if fwd.masqInterface != null
+      then fwd.masqInterface
+      else fwd.interface)
+    cfg.forwards));
 in {
   options.nebula.networking.nftables.nat = {
     enable = mkEnableOption "nebula NAT port forwarding";

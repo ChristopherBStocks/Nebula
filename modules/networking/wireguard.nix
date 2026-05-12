@@ -83,15 +83,14 @@ in {
     networking.wireguard.interfaces =
       lib.mapAttrs (_name: net: {
         ips = [net.address];
-        listenPort = net.listenPort;
-        privateKeyFile = net.privateKeyFile;
-        peers =
-          map (peer:
-            {inherit (peer) publicKey allowedIPs;}
-            // lib.optionalAttrs (peer.endpoint != null) {inherit (peer) endpoint;}
-            // lib.optionalAttrs (peer.persistentKeepalive != null) {inherit (peer) persistentKeepalive;}
-            // lib.optionalAttrs (peer.presharedKeyFile != null) {inherit (peer) presharedKeyFile;})
-          net.peers;
+        inherit (net) listenPort;
+        inherit (net) privateKeyFile;
+        peers = map (peer:
+          {inherit (peer) publicKey allowedIPs;}
+          // lib.optionalAttrs (peer.endpoint != null) {inherit (peer) endpoint;}
+          // lib.optionalAttrs (peer.persistentKeepalive != null) {inherit (peer) persistentKeepalive;}
+          // lib.optionalAttrs (peer.presharedKeyFile != null) {inherit (peer) presharedKeyFile;})
+        net.peers;
       })
       cfg.networks;
 

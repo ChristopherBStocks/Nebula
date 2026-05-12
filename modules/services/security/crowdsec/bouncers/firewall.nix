@@ -31,5 +31,12 @@ in {
       };
       secrets.apiKeyPath = mkIf (cfg.apiKeyFile != null) cfg.apiKeyFile;
     };
+
+    systemd.services.crowdsec-firewall-bouncer-register = mkIf (cfg.apiKeyFile == null) {
+      serviceConfig = {
+        Restart = "on-failure";
+        RestartSec = 5;
+      };
+    };
   };
 }

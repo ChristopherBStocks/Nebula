@@ -15,8 +15,9 @@
       };
 
       port = mkOption {
-        type = types.either types.port types.str;
-        description = "Port or port range to match (e.g. 22 or \"8000-8080\").";
+        type = types.nullOr (types.either types.port types.str);
+        default = null;
+        description = "Port or port range to match (e.g. 22 or \"8000-8080\"). Matches all ports if null.";
       };
 
       source = mkOption {
@@ -52,16 +53,20 @@
   };
 
   mkRules = rule: let
-    mkProto = proto: let
-      ifaceMatch = lib.optionalString (rule.interface != null) "iifname \"${rule.interface}\" ";
-      oifMatch = lib.optionalString (rule.outInterface != null) "oifname \"${rule.outInterface}\" ";
-      srcMatch = lib.optionalString (rule.source != null) "ip saddr ${rule.source} ";
-      dstMatch = lib.optionalString (rule.dest != null) "ip daddr ${rule.dest} ";
-    in "${ifaceMatch}${oifMatch}${srcMatch}${dstMatch}${proto} dport ${toString rule.port} ${rule.action}";
+    ifaceMatch = lib.optionalString (rule.interface != null) "iifname \"${rule.interface}\" ";
+    oifMatch = lib.optionalString (rule.outInterface != null) "oifname \"${rule.outInterface}\" ";
+    srcMatch = lib.optionalString (rule.source != null) "ip saddr ${rule.source} ";
+    dstMatch = lib.optionalString (rule.dest != null) "ip daddr ${rule.dest} ";
+    mkProto = proto: "${ifaceMatch}${oifMatch}${srcMatch}${dstMatch}${proto} dport ${toString rule.port} ${rule.action}";
+    mkAny = "${ifaceMatch}${oifMatch}${srcMatch}${dstMatch}${rule.action}";
   in
-    if rule.proto == "tcp_udp"
+    if rule.port == null
+    then mkAny
+    else if rule.proto == "tcp_udp"
     then "${mkProto "tcp"}\n      ${mkProto "udp"}"
     else mkProto rule.proto;
+
+  needsForwarding = cfg.requireForwardRules || cfg.forwardRules != [];
 
   mkCrowdsecForward = family: set: ''
     chain ${set}-forward {
@@ -77,12 +82,6 @@ in {
       type = types.bool;
       default = false;
       description = "Run nft --check at build time to validate rules. Requires a Linux build host.";
-    };
-
-    trustedInterfaces = mkOption {
-      type = types.listOf types.str;
-      default = ["lo"];
-      description = "Interfaces to unconditionally accept all traffic from.";
     };
 
     rules = mkOption {
@@ -115,6 +114,8 @@ in {
     networking.nftables.enable = mkDefault true;
     networking.nftables.checkRuleset = cfg.checkRuleset;
 
+    boot.kernel.sysctl."net.ipv4.ip_forward" = mkIf needsForwarding (mkDefault 1);
+
     networking.nftables.tables.nebula-fw = {
       family = "inet";
       content = ''
@@ -124,7 +125,7 @@ in {
           ct state invalid drop
           ct state { established, related } accept
 
-          ${lib.concatMapStringsSep "\n      " (iface: "iifname \"${iface}\" accept") cfg.trustedInterfaces}
+          iifname "lo" accept
 
           icmp type echo-request accept
           icmpv6 type != { nd-redirect, 139 } accept
@@ -132,7 +133,7 @@ in {
           ${lib.concatMapStringsSep "\n      " mkRules cfg.rules}
         }
 
-        ${lib.optionalString (cfg.requireForwardRules || cfg.forwardRules != []) ''
+        ${lib.optionalString needsForwarding ''
           chain forward {
             type filter hook forward priority filter; policy drop;
 

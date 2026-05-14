@@ -1,3 +1,6 @@
 _: {
-  flake.nixosModules.loader-systemd = ./systemd.nix;
+  flake.nixosModules = {
+    loader-grub = ./grub.nix;
+    loader-systemd = ./systemd.nix;
+  };
 }

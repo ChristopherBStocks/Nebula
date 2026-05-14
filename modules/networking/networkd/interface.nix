@@ -56,10 +56,19 @@
       else {Name = name;};
     networkConfig =
       {DHCP = i.dhcp;}
-      // lib.optionalAttrs (i.gateway != null) {Gateway = i.gateway;}
       // lib.optionalAttrs (i.nameservers != []) {DNS = lib.concatStringsSep " " i.nameservers;};
     addresses = map address.mk i.addresses;
-    routes = map route.mk i.routes;
+    routes =
+      map route.mk i.routes
+      ++ lib.optionals (i.gateway != null) [
+        {
+          routeConfig = {
+            Destination = "0.0.0.0/0";
+            Gateway = i.gateway;
+            GatewayOnLink = true;
+          };
+        }
+      ];
     routingPolicyRules = map rule.mk i.rules;
   };
 in {inherit type mk;}

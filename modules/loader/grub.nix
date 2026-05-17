@@ -27,6 +27,12 @@ in {
       description = "Install GRUB to the EFI removable media path for booting without NVRAM entry.";
     };
 
+    efiSysMountPoint = mkOption {
+      type = types.str;
+      default = "/boot";
+      description = "Mount point of the EFI system partition.";
+    };
+
     useOSProber = mkOption {
       type = types.bool;
       default = false;
@@ -41,6 +47,7 @@ in {
   };
 
   config = mkIf cfg.enable {
+    boot.loader.efi.efiSysMountPoint = cfg.efiSysMountPoint;
     boot.loader.grub = {
       enable = mkDefault true;
       devices = mkDefault cfg.devices;

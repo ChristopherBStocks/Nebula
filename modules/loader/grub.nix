@@ -21,6 +21,12 @@ in {
       description = "Enable EFI support for GRUB.";
     };
 
+    efiInstallAsRemovable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Install GRUB to the EFI removable media path for booting without NVRAM entry.";
+    };
+
     useOSProber = mkOption {
       type = types.bool;
       default = false;
@@ -38,7 +44,7 @@ in {
     boot.loader.grub = {
       enable = mkDefault true;
       devices = mkDefault cfg.devices;
-      inherit (cfg) efiSupport useOSProber configurationLimit;
+      inherit (cfg) efiSupport efiInstallAsRemovable useOSProber configurationLimit;
     };
   };
 }

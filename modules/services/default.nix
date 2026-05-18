@@ -3,5 +3,6 @@ _: {
     ./certs
     ./network
     ./security
+    ./web
   ];
 }

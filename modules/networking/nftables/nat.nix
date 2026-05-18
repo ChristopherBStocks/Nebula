@@ -25,11 +25,14 @@
   masqueradeRules =
     lib.concatMapStringsSep "\n      "
     (iface: "oif \"${iface}\" masquerade")
-    (lib.unique (map (fwd:
-      if fwd.masqInterface != null
-      then fwd.masqInterface
-      else fwd.interface)
-    cfg.forwards));
+    (lib.unique (
+      cfg.masqueradeInterfaces
+      ++ map (fwd:
+        if fwd.masqInterface != null
+        then fwd.masqInterface
+        else fwd.interface)
+      cfg.forwards
+    ));
 in {
   options.nebula.networking.nftables.nat = {
     enable = mkEnableOption "nebula NAT port forwarding";
@@ -38,6 +41,12 @@ in {
       type = types.bool;
       default = false;
       description = "Run nft --check at build time to validate rules. Requires a Linux build host.";
+    };
+
+    masqueradeInterfaces = mkOption {
+      type = types.listOf types.str;
+      default = [];
+      description = "Interfaces to masquerade outbound traffic on, without requiring port forwarding rules.";
     };
 
     forwards = mkOption {

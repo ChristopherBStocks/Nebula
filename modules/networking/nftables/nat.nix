@@ -98,7 +98,7 @@ in {
   };
 
   config = mkIf cfg.enable {
-    boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+    boot.kernel.sysctl."net.ipv4.ip_forward" = mkDefault 1;
 
     networking.nftables.enable = mkDefault true;
     networking.nftables.checkRuleset = cfg.checkRuleset;

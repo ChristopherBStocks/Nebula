@@ -114,7 +114,7 @@ in {
     networking.nftables.enable = mkDefault true;
     networking.nftables.checkRuleset = cfg.checkRuleset;
 
-    boot.kernel.sysctl."net.ipv4.ip_forward" = mkIf needsForwarding (mkDefault 1);
+    boot.kernel.sysctl."net.ipv4.ip_forward" = mkIf needsForwarding (lib.mkOverride 1001 1);
 
     networking.nftables.tables.nebula-fw = {
       family = "inet";

@@ -146,10 +146,14 @@ in {
       '';
     };
 
-    networking.nftables.tables.crowdsec.content =
-      mkIf cfg.crowdsec.checkForwarded (mkCrowdsecForward "ip" "crowdsec-blacklists");
+    networking.nftables.tables.crowdsec = mkIf cfg.crowdsec.checkForwarded {
+      family = "ip";
+      content = mkCrowdsecForward "ip" "crowdsec-blacklists";
+    };
 
-    networking.nftables.tables.crowdsec6.content =
-      mkIf cfg.crowdsec.checkForwarded (mkCrowdsecForward "ip6" "crowdsec6-blacklists");
+    networking.nftables.tables.crowdsec6 = mkIf cfg.crowdsec.checkForwarded {
+      family = "ip6";
+      content = mkCrowdsecForward "ip6" "crowdsec6-blacklists";
+    };
   };
 }

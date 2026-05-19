@@ -4,8 +4,9 @@
   pkgs,
 }: {
   description = "Enroll CrowdSec instance in the CrowdSec Console";
-  after = ["crowdsec.service" "network-online.target"];
+  after = ["crowdsec.service" "network-online.target" "crowdsec-capi-register.service"];
   wants = ["network-online.target"];
+  requires = ["crowdsec-capi-register.service"];
   wantedBy = ["multi-user.target"];
   unitConfig.ConditionPathExists = "!/var/lib/crowdsec/.console-enrolled";
   serviceConfig = {

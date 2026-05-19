@@ -1,10 +1,40 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   inherit (lib) mkDefault mkEnableOption mkIf mkOption types;
   cfg = config.nebula.services.nginx;
+
+  appsecLuaBlock = ''
+    access_by_lua_block {
+      if not crowdsec_appsec_key then
+        local f = io.open("${toString cfg.appsec.apiKeyFile}", "r")
+        if f then
+          crowdsec_appsec_key = f:read("*a"):gsub("%s+$", "")
+          f:close()
+        end
+      end
+      local http = require "resty.http"
+      local httpc = http.new()
+      httpc:set_timeout(1000)
+      local res, err = httpc:request_uri("${cfg.appsec.listenAddr}", {
+        method = ngx.req.get_method(),
+        headers = {
+          ["X-Crowdsec-Appsec-Api-Key"]    = crowdsec_appsec_key,
+          ["X-Crowdsec-Appsec-Ip"]         = ngx.var.remote_addr,
+          ["X-Crowdsec-Appsec-Verb"]       = ngx.req.get_method(),
+          ["X-Crowdsec-Appsec-Uri"]        = ngx.var.request_uri,
+          ["X-Crowdsec-Appsec-Host"]       = ngx.var.host,
+          ["X-Crowdsec-Appsec-User-Agent"] = ngx.var.http_user_agent,
+        },
+      })
+      if res and res.status == 403 then
+        return ngx.exit(ngx.HTTP_FORBIDDEN)
+      end
+    }
+  '';
 
   zoneName = name: builtins.replaceStrings ["." "-"] ["_" "_"] name;
 
@@ -87,6 +117,12 @@
         description = "Buffer upstream responses. Set false for streaming responses (SSE, chunked transfers).";
       };
 
+      proxyRequestBuffering = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Buffer client request bodies before forwarding. Set false for S3 multipart uploads and large streaming uploads.";
+      };
+
       rateLimit = mkOption {
         type = types.nullOr rateLimitSubmodule;
         default = null;
@@ -123,6 +159,22 @@ in {
       description = "Enable HTTP/3 (QUIC) for all virtual hosts. Advertises via Alt-Svc header.";
     };
 
+    appsec = {
+      enable = mkEnableOption "CrowdSec AppSec Lua integration";
+
+      listenAddr = mkOption {
+        type = types.str;
+        default = "http://127.0.0.1:7422";
+        description = "Address of the CrowdSec AppSec HTTP listener.";
+      };
+
+      apiKeyFile = mkOption {
+        type = types.path;
+        default = "/var/lib/crowdsec/appsec-bouncer.key";
+        description = "Path to a file containing the CrowdSec bouncer API key for AppSec. Defaults to the path written by nebula.services.crowdsec.bouncers.appsec.";
+      };
+    };
+
     virtualHosts = mkOption {
       type = types.attrsOf virtualHostSubmodule;
       default = {};
@@ -150,10 +202,22 @@ in {
     users.users.nginx.extraGroups =
       lib.optional
       (lib.any (v: v.useACMEHost != null) (lib.attrValues cfg.virtualHosts))
-      "acme";
+      "acme"
+      ++ lib.optional cfg.appsec.enable "crowdsec";
+
+    systemd.services.nginx = mkIf cfg.appsec.enable {
+      after = ["crowdsec-appsec-bouncer-register.service"];
+      wants = ["crowdsec-appsec-bouncer-register.service"];
+      serviceConfig = {
+        MemoryDenyWriteExecute = lib.mkForce false;
+        BindReadOnlyPaths = [cfg.appsec.apiKeyFile];
+      };
+    };
 
     # nginx's dynamic GID isn't resolvable in the Nix build sandbox
     services.logrotate.checkConfig = false;
+
+    services.nginx.package = mkIf cfg.appsec.enable pkgs.openresty;
 
     services.nginx = {
       enable = true;
@@ -165,6 +229,19 @@ in {
       recommendedBrotliSettings = true;
 
       appendHttpConfig = lib.concatStringsSep "\n" (
+        lib.optional cfg.appsec.enable ''
+          lua_package_path "${pkgs.lua51Packages.lua-resty-http}/share/lua/5.1/?.lua;;";
+          init_worker_by_lua_block {
+            local f = io.open("${toString cfg.appsec.apiKeyFile}", "r")
+            if f then
+              crowdsec_appsec_key = f:read("*l")
+              f:close()
+            else
+              ngx.log(ngx.ERR, "crowdsec appsec: cannot open key file ${toString cfg.appsec.apiKeyFile}")
+            end
+          }
+        ''
+        ++
         # Rate limiting zones and log level
         lib.mapAttrsToList (
           name: vhost:
@@ -219,6 +296,7 @@ in {
                 "proxy_send_timeout ${vhost.proxyTimeout};"
               ]
               ++ lib.optional (!vhost.proxyBuffering) "proxy_buffering off;"
+              ++ lib.optional (!vhost.proxyRequestBuffering) "proxy_request_buffering off;"
               ++ lib.optionals (vhost.rateLimit != null) [
                 "limit_req zone=${zoneName name} burst=${toString vhost.rateLimit.burst}${lib.optionalString vhost.rateLimit.nodelay " nodelay"};"
                 "limit_req_status 429;"
@@ -228,6 +306,7 @@ in {
                 "limit_conn_status 429;"
               ]
               ++ ["proxy_hide_header Server;" "proxy_hide_header X-Powered-By;"]
+              ++ lib.optional cfg.appsec.enable appsecLuaBlock
               ++ lib.optional (vhost.extraConfig != "") vhost.extraConfig
             );
           };

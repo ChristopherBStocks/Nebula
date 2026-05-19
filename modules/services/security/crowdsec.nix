@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  pkgsUnstable,
   ...
 }: let
   inherit (lib) mkDefault mkEnableOption mkIf mkOption types;
@@ -10,11 +11,21 @@
   bootstrap = import ./crowdsec/bootstrap.nix;
   capiRegister = import ./crowdsec/capi-register.nix;
   consoleEnroll = import ./crowdsec/console-enroll.nix;
+  appsecRegister = import ./crowdsec/bouncers/appsec-register.nix;
 in {
-  imports = [./crowdsec/bouncers/firewall.nix];
+  imports = [
+    ./crowdsec/bouncers/firewall.nix
+    ./crowdsec/bouncers/appsec.nix
+  ];
 
   options.nebula.services.crowdsec = {
     enable = mkEnableOption "nebula CrowdSec";
+
+    useUnstable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Use the crowdsec package from nixpkgs-unstable instead of stable.";
+    };
 
     name = mkOption {
       type = types.nullOr types.str;
@@ -93,6 +104,10 @@ in {
     cscli = "${config.services.crowdsec.package}/bin/cscli -c ${cscliConfigFile}";
     capiCredentialsPath = "/var/lib/crowdsec/online_api_credentials.yaml";
   in {
+    nixpkgs.overlays = lib.mkIf cfg.useUnstable [
+      (_final: _prev: {crowdsec = pkgsUnstable.crowdsec;})
+    ];
+
     systemd.services = {
       crowdsec.serviceConfig = {
         SupplementaryGroups = ["systemd-journal"];
@@ -105,6 +120,9 @@ in {
       crowdsec-console-enroll =
         mkIf (cfg.capi.enable && cfg.capi.consoleEnrollKeyFile != null)
         (consoleEnroll {inherit cfg cscli pkgs;});
+      crowdsec-appsec-bouncer-register =
+        mkIf cfg.bouncers.appsec.enable
+        (appsecRegister {inherit cfg cscli pkgs;});
     };
 
     services.crowdsec =
@@ -121,7 +139,7 @@ in {
         group = mkDefault cfg.group;
         settings = {
           lapi.credentialsFile = mkDefault "/var/lib/crowdsec/local_api_credentials.yaml";
-          capi.credentialsFile = capiCredentialsPath;
+          capi.credentialsFile = mkIf cfg.capi.enable capiCredentialsPath;
           general = {
             api.server.enable = true;
             api.server.console_path = "/var/lib/crowdsec/console.yaml";

@@ -1,10 +1,11 @@
 {
   config,
   lib,
+  inputs,
   pkgs,
-  pkgsUnstable,
   ...
 }: let
+  pkgsUnstable = inputs.nixpkgsUnstable.legacyPackages.${pkgs.system};
   inherit (lib) mkDefault mkEnableOption mkIf mkOption types;
   cfg = config.nebula.services.crowdsec;
   acquisition = import ./crowdsec/acquisitions {inherit lib;};

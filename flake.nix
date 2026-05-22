@@ -4,7 +4,7 @@
   # ── Inputs ────────────────────────────────────────────────────────────
   inputs = {
     # NixOS
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/eb6e113";
     nixpkgsUnstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # Darwin
